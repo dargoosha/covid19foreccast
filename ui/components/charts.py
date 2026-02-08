@@ -54,4 +54,4 @@ def render_chart(
         rangeselector=dict(buttons=[dict(step="all", label="Весь період")]),
         rangeslider=dict(visible=True),
     )
-    st.plotly_chart(fig, width='stretch')
+    st.plotly_chart(fig, config={"responsive": True})

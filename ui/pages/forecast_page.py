@@ -376,7 +376,7 @@ def _render_history_view() -> None:
             yaxis_title="new_cases",
             hovermode="x unified",
         )
-        st.plotly_chart(fig, width='stretch')
+        st.plotly_chart(fig, config={"responsive": True})
     else:
         st.info("Немає даних для графіка.")
 

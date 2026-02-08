@@ -128,15 +128,26 @@ def render_sidebar() -> None:
 
         with col_menu:
             st.markdown('<div class="sb-menu">', unsafe_allow_html=True)
-            # three-dots opens a popover with actions (delete)
-            with st.popover("", width='stretch', icon=None):
+
+            pop_key = f"pop_{s.session_id}"  # уникальный ключ на строку
+
+            with st.popover("⋯", key=pop_key, use_container_width=True):
                 st.markdown(f"**{label}**")
-                if st.button("Видалити", key=f"del_{s.session_id}", type="primary", width='stretch'):
+                if st.button("Видалити", key=f"del_{s.session_id}", type="primary", use_container_width=True):
+                    # 1) удалить запись
                     delete_session_uc(repo, int(s.session_id))
+
+                    # 2) если была выбрана — сбросить selection
                     if st.session_state.get("selected_session_id") == s.session_id:
                         st.session_state["selected_session_id"] = None
                         st.session_state["active_view"] = "new"
+
+                    # 3) закрыть popover: сбросить его state по key
+                    st.session_state.pop(pop_key, None)
+
+                    # 4) перерисовать
                     st.rerun()
+
             st.markdown("</div>", unsafe_allow_html=True)
 
         st.sidebar.markdown("</div>", unsafe_allow_html=True)

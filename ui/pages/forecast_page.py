@@ -25,12 +25,12 @@ def _save_dialog_and_persist() -> None:
 
     @st.dialog("Збереження прогнозу")
     def _dlg() -> None:
-        project_name = st.text_input("Назва проєкту (до 15 символів)", max_chars=15)
+        project_name = st.text_input("Назва проєкту", max_chars=15)
 
         if st.session_state.get("save_error"):
             st.error(st.session_state["save_error"])
 
-        project_desc = st.text_area("Опис (до 200 символів)", max_chars=200, height=120)
+        project_desc = st.text_area("Опис", max_chars=200, height=120)
 
         col1, col2 = st.columns(2)
 

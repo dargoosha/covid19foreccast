@@ -178,13 +178,26 @@ def _render_new_forecast() -> None:
     col1, col2, col3 = st.columns([1.2, 0.8, 1.0], vertical_alignment="bottom")
 
     with col1:
-        chosen = st.selectbox(
+        min_date = pd.to_datetime(valid_dates.iloc[0]).date()
+        max_date = pd.to_datetime(valid_dates.iloc[-1]).date()
+
+        # текущее значение для календаря
+        default_date = pd.to_datetime(st.session_state.get("draft_chosen") or valid_dates.iloc[0]).date()
+        if default_date < min_date:
+            default_date = min_date
+        if default_date > max_date:
+            default_date = max_date
+
+        chosen_date = st.date_input(
             "Дата старту прогнозу:",
-            options=valid_dates,
-            key="ui_start_date",
+            value=default_date,
+            min_value=min_date,
+            max_value=max_date,
+            key="ui_start_date_cal",
             on_change=_reset_run,
-            format_func=lambda d: pd.to_datetime(d).strftime("%Y-%m-%d"),
         )
+
+        chosen = pd.Timestamp(chosen_date)
 
     with col2:
         horizon = st.selectbox(

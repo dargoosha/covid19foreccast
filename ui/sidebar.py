@@ -7,7 +7,7 @@ from use_cases.delete_session import delete_session_uc
 
 
 def _session_title(s) -> str:
-    name = (s.project_name or "Без назви").strip()
+    name = (getattr(s, "project_name", None) or "Без назви").strip()
     return name
 
 
@@ -16,79 +16,79 @@ def render_sidebar() -> None:
 
     st.sidebar.markdown(
         """
-    <style>
-    /* ===== Tight sidebar layout (remove Streamlit block gaps) ===== */
-    section[data-testid="stSidebar"] .block-container {
-      padding-top: 0.75rem !important;
-    }
+<style>
+/* ===== Tight sidebar layout (remove Streamlit block gaps) ===== */
+section[data-testid="stSidebar"] .block-container {
+  padding-top: 0.75rem !important;
+}
 
-    /* Streamlit adds margins around every element block */
-    section[data-testid="stSidebar"] .element-container {
-      margin: 0 !important;
-      padding: 0 !important;
-    }
+/* Streamlit adds margins around every element block */
+section[data-testid="stSidebar"] .element-container {
+  margin: 0 !important;
+  padding: 0 !important;
+}
 
-    /* Some versions wrap with stVerticalBlock */
-    section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-      gap: 0.25rem !important; /* ключове: прибирає величезний gap */
-    }
+/* Some versions wrap with stVerticalBlock */
+section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+  gap: 0.25rem !important; /* ключове: прибирає величезний gap */
+}
 
-    /* Columns add their own paddings */
-    section[data-testid="stSidebar"] [data-testid="column"] {
-      padding-top: 0 !important;
-      padding-bottom: 0 !important;
-    }
+/* Columns add their own paddings */
+section[data-testid="stSidebar"] [data-testid="column"] {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
 
-    /* Buttons – no extra margins */
-    section[data-testid="stSidebar"] button {
-      width: 100% !important;
-      margin: 0 !important;
-    }
+/* Buttons – no extra margins */
+section[data-testid="stSidebar"] button {
+  width: 100% !important;
+  margin: 0 !important;
+}
 
-    /* inner text ellipsis */
-    section[data-testid="stSidebar"] button p,
-    section[data-testid="stSidebar"] button span,
-    section[data-testid="stSidebar"] button [data-testid="stMarkdownContainer"],
-    section[data-testid="stSidebar"] button [data-testid="stMarkdownContainer"] * {
-      white-space: nowrap !important;
-      overflow: hidden !important;
-      text-overflow: ellipsis !important;
-      margin: 0 !important;
-    }
+/* inner text ellipsis */
+section[data-testid="stSidebar"] button p,
+section[data-testid="stSidebar"] button span,
+section[data-testid="stSidebar"] button [data-testid="stMarkdownContainer"],
+section[data-testid="stSidebar"] button [data-testid="stMarkdownContainer"] * {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  margin: 0 !important;
+}
 
-    /* ===== Your row ===== */
-    .sb-row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      width: 100%;
-      margin: 0 !important;
-      padding: 0 !important;
-    }
+/* ===== Your row ===== */
+.sb-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
+}
 
-    /* left: main button */
-    .sb-row .sb-main {
-      flex: 1 1 auto;
-      min-width: 0;
-    }
+/* left: main button */
+.sb-row .sb-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
 
-    /* right: menu button */
-    .sb-row .sb-menu {
-      flex: 0 0 auto;
-      width: 40px;
-    }
+/* right: menu button */
+.sb-row .sb-menu {
+  flex: 0 0 auto;
+  width: 40px;
+}
 
-    /* menu button style */
-    section[data-testid="stSidebar"] div.sb-menu button {
-      padding-left: 0 !important;
-      padding-right: 0 !important;
-      text-align: center !important;
-      opacity: 0.85;
-    }
-    section[data-testid="stSidebar"] div.sb-menu button:hover {
-      opacity: 1.0;
-    }
-    </style>
+/* menu button style */
+section[data-testid="stSidebar"] div.sb-menu button {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  text-align: center !important;
+  opacity: 0.85;
+}
+section[data-testid="stSidebar"] div.sb-menu button:hover {
+  opacity: 1.0;
+}
+</style>
         """,
         unsafe_allow_html=True,
     )
@@ -97,57 +97,74 @@ def render_sidebar() -> None:
 
     sessions = list_sessions_uc(repo, limit=200)
 
-    if st.sidebar.button("＋ Новий прогноз", width='stretch'):
+    # керуємо відкритим меню самі, щоб воно не "залипало" після delete+rerun
+    if "sidebar_menu_open_id" not in st.session_state:
+        st.session_state["sidebar_menu_open_id"] = None
+
+    if st.sidebar.button("＋ Новий прогноз", width="stretch"):
         st.session_state["active_view"] = "new"
         st.session_state["selected_session_id"] = None
+        st.session_state["sidebar_menu_open_id"] = None
         st.rerun()
 
     st.sidebar.markdown("---")
 
     for s in sessions:
-        is_selected = (st.session_state.get("selected_session_id") == s.session_id)
+        sid = getattr(s, "session_id", None)
+        if sid is None:
+            continue
+
+        is_selected = (st.session_state.get("selected_session_id") == sid)
         label = _session_title(s)
 
         # --- layout row wrapper ---
         st.sidebar.markdown('<div class="sb-row">', unsafe_allow_html=True)
 
-        col_main, col_menu = st.sidebar.columns([0.86, 0.14])
+        col_main, col_menu = st.sidebar.columns([0.70, 0.30])
 
         with col_main:
             st.markdown('<div class="sb-main">', unsafe_allow_html=True)
             if st.button(
                 label,
-                key=f"open_{s.session_id}",
-                width='stretch',
+                key=f"open_{sid}",
+                width="stretch",
                 type=("primary" if is_selected else "secondary"),
             ):
                 st.session_state["active_view"] = "history"
-                st.session_state["selected_session_id"] = s.session_id
+                st.session_state["selected_session_id"] = sid
+                st.session_state["sidebar_menu_open_id"] = None
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
         with col_menu:
             st.markdown('<div class="sb-menu">', unsafe_allow_html=True)
 
-            pop_key = f"pop_{s.session_id}"  # уникальный ключ на строку
-
-            with st.popover("⋯", key=pop_key, use_container_width=True):
-                st.markdown(f"**{label}**")
-                if st.button("Видалити", key=f"del_{s.session_id}", type="primary", use_container_width=True):
-                    # 1) удалить запись
-                    delete_session_uc(repo, int(s.session_id))
-
-                    # 2) если была выбрана — сбросить selection
-                    if st.session_state.get("selected_session_id") == s.session_id:
-                        st.session_state["selected_session_id"] = None
-                        st.session_state["active_view"] = "new"
-
-                    # 3) закрыть popover: сбросить его state по key
-                    st.session_state.pop(pop_key, None)
-
-                    # 4) перерисовать
-                    st.rerun()
+            if st.button("✕", key=f"menu_{sid}", width="stretch"):
+                cur = st.session_state.get("sidebar_menu_open_id")
+                st.session_state["sidebar_menu_open_id"] = (None if cur == sid else sid)
+                st.rerun()
 
             st.markdown("</div>", unsafe_allow_html=True)
 
         st.sidebar.markdown("</div>", unsafe_allow_html=True)
+
+        # меню (як у поповері): заголовок + 2 кнопки
+        if st.session_state.get("sidebar_menu_open_id") == sid:
+            st.sidebar.markdown(f"**{label}**")
+
+            c1, c2 = st.sidebar.columns(2)
+            with c1:
+                if st.button("Скасувати", key=f"cancel_{sid}", width="stretch"):
+                    st.session_state["sidebar_menu_open_id"] = None
+                    st.rerun()
+
+            with c2:
+                if st.button("Видалити", key=f"del_{sid}", type="primary", width="stretch"):
+                    delete_session_uc(repo, int(sid))
+
+                    if st.session_state.get("selected_session_id") == sid:
+                        st.session_state["selected_session_id"] = None
+                        st.session_state["active_view"] = "new"
+
+                    st.session_state["sidebar_menu_open_id"] = None
+                    st.rerun()

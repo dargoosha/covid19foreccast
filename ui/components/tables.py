@@ -11,7 +11,6 @@ from core.config import MODEL_ORDER
 COL_LABELS = {
     "day": "День",
     "date": "Дата",
-    "true": "Фактичні випадки",
     "pred_LSTM": "Прогноз LSTM",
     "pred_SEIR+LSTM old": "Прогноз старої SEIR + LSTM",
     "pred_SEIR+LSTM new": "Прогноз нової SEIR + LSTM",
@@ -49,26 +48,9 @@ def _get_pred(obj: Any) -> list[float]:
     return [float(x) for x in list(v)]
 
 
-def _build_true_map(true_df: pd.DataFrame) -> dict[str, float]:
-    if true_df is None or len(true_df) == 0:
-        return {}
-
-    if "date" not in true_df.columns or "new_cases" not in true_df.columns:
-        return {}
-
-    tmp = true_df.copy()
-    tmp["date"] = pd.to_datetime(tmp["date"]).dt.strftime("%Y-%m-%d")
-    tmp = tmp.dropna(subset=["date"])
-    # new_cases может быть NaN — это ок, просто отфильтруем
-    tmp = tmp.dropna(subset=["new_cases"])
-    return dict(zip(tmp["date"].tolist(), tmp["new_cases"].astype(float).tolist()))
-
-
 def render_forecast_table(
     chosen_date_iso: str,
-    results: dict[str, Any],          # ForecastResult або ModelForecast
-    true_df: pd.DataFrame | None = None,  # optional
-    show_true: bool = True,           # <--- NEW: выключает колонку факта
+    results: dict[str, Any],  # ForecastResult або ModelForecast
 ) -> None:
     base = None
     for k in MODEL_ORDER:
@@ -85,16 +67,10 @@ def render_forecast_table(
         st.info("Немає прогнозу (замало даних для обраної дати/горизонту).")
         return
 
-    true_map = _build_true_map(true_df) if show_true else {}
-
     data: dict[str, list[Any]] = {
         "day": [0] + list(range(1, len(dates_iso) + 1)),
         "date": [chosen_date_iso] + list(dates_iso),
     }
-
-    if show_true:
-        true_seg = [true_map.get(d) for d in dates_iso]
-        data["true"] = [None] + true_seg
 
     for mt in MODEL_ORDER:
         key = f"pred_{mt}"
@@ -105,4 +81,4 @@ def render_forecast_table(
             data[key] = [None] + [None] * len(dates_iso)
 
     df = pd.DataFrame(data).rename(columns=COL_LABELS)
-    st.dataframe(df, width='stretch')
+    st.dataframe(df, width="stretch")
